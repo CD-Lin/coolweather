@@ -2,7 +2,10 @@ package com.coolweather.app.activity;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.Window;
@@ -42,23 +45,31 @@ public class ChooseAreaActivity extends Activity {
     private CoolWeatherDB coolWeatherDB;
     private List<String> dataList = new ArrayList<String>();
 
-    private List<Province> provinceList;
+    private List<Province> provinceList = new ArrayList<Province>();
 
-    private List<City> cityList;
+    private List<City> cityList = new ArrayList<City>();
 
-    private List<County> countyList;
+    private List<County> countyList = new ArrayList<County>();
 
     private Province selectedProvince;
 
     private City selectedCity;
 
-    private County selectedCounty;
-
     private int currentLevel;
+
+    private boolean isFromWeatherActivity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        isFromWeatherActivity = getIntent().getBooleanExtra("from_weather_activity", false);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        if (prefs.getBoolean("city_selected", false) && !isFromWeatherActivity) {
+            Intent intent = new Intent(this, WeatherActivity.class);
+            startActivity(intent);
+            finish();
+            return;
+        }
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.choose_area);
         listView = (ListView) findViewById(R.id.list_view);
@@ -76,6 +87,12 @@ public class ChooseAreaActivity extends Activity {
                 } else if (currentLevel == LEVEL_CITY) {
                     selectedCity = cityList.get(position);
                     queryCounties();
+                } else if (currentLevel == LEVEL_COUNTY) {
+                    String countyCode = countyList.get(position).getCountyCode();
+                    Intent intent = new Intent(ChooseAreaActivity.this, WeatherActivity.class);
+                    intent.putExtra("county_code", countyCode);
+                    startActivity(intent);
+                    finish();
                 }
             }
         });
@@ -84,7 +101,7 @@ public class ChooseAreaActivity extends Activity {
 
     private void queryProvinces() {
         provinceList = coolWeatherDB.loadProvinces();
-        if (provinceList.size() > 0) {
+        if (provinceList!= null && provinceList.size() > 0) {
             dataList.clear();
             for (Province province : provinceList) {
                 dataList.add(province.getProvinceName());
@@ -98,9 +115,9 @@ public class ChooseAreaActivity extends Activity {
         }
     }
 
-    private void queryCounties() {
+    private void queryCities() {
         cityList = coolWeatherDB.loadCities(selectedProvince.getId());
-        if (cityList.size() > 0) {
+        if (cityList != null && cityList.size() > 0) {
             dataList.clear();
             for (City city : cityList) {
                 dataList.add(city.getCityName());
@@ -114,9 +131,9 @@ public class ChooseAreaActivity extends Activity {
         }
     }
 
-    private void queryCities() {
+    private void queryCounties() {
         countyList = coolWeatherDB.loadCounties(selectedCity.getId());
-        if (countyList.size() > 0) {
+        if (countyList != null && countyList.size() > 0) {
             dataList.clear();
             for (County county : countyList) {
                 dataList.add(county.getCountyName());
@@ -135,7 +152,7 @@ public class ChooseAreaActivity extends Activity {
         if (!TextUtils.isEmpty(code)) {
             address = "http://www.weather.com.cn/data/list3/city" + code + ".xml";
         } else {
-            address = "http://www.weather.com.cn/data/list/city.xml";
+            address = "http://www.weather.com.cn/data/list3/city.xml";
         }
         showProgressDialog();
         HttpUtil.sendHttpRequest(address, new HttpCallbackListener() {
@@ -172,7 +189,8 @@ public class ChooseAreaActivity extends Activity {
                     @Override
                     public void run() {
                         closeProgressDialog();
-                        Toast.makeText(ChooseAreaActivity.this, "加载失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ChooseAreaActivity.this,
+                                "加载失败", Toast.LENGTH_SHORT).show();
                     }
                 });
             }
@@ -201,6 +219,10 @@ public class ChooseAreaActivity extends Activity {
         } else if (currentLevel == LEVEL_CITY) {
             queryProvinces();
         } else {
+            if (isFromWeatherActivity) {
+                Intent intent = new Intent(this, WeatherActivity.class);
+                startActivity(intent);
+            }
             finish();
         }
     }

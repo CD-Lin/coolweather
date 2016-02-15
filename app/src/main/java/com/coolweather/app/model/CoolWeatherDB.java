@@ -29,7 +29,7 @@ public class CoolWeatherDB {
     }
 
     public synchronized static CoolWeatherDB getInstance(Context context) {
-        if (coolWeatherDB != null) {
+        if (coolWeatherDB == null) {
             coolWeatherDB = new CoolWeatherDB(context);
         }
         return coolWeatherDB;
@@ -55,6 +55,9 @@ public class CoolWeatherDB {
                 province.setProvinceCode(cursor.getString(cursor.getColumnIndex("province_code")));
                 list.add(province);
             } while (cursor.moveToNext());
+        }
+        if (cursor != null) {
+            cursor.close();
         }
         return list;
     }
@@ -82,6 +85,9 @@ public class CoolWeatherDB {
                 list.add(city);
             } while (cursor.moveToNext());
         }
+        if (cursor != null) {
+            cursor.close();
+        }
         return list;
     }
 
@@ -107,6 +113,9 @@ public class CoolWeatherDB {
                 county.setCityId(cityId);
                 list.add(county);
             } while (cursor.moveToNext());
+        }
+        if (cursor != null) {
+            cursor.close();
         }
         return list;
     }
